@@ -1,0 +1,155 @@
+import React from "react";
+import { useState } from "react";
+import EditAccountService from "../../../../api/users/EditAccountService";
+import Container from "@mui/system/Container";
+import { Typography } from "@mui/material";
+import { Box }from "@mui/system";
+import { TextField } from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+import { Checkbox } from "@mui/material";
+import {FormGroup , FormControlLabel} from "@mui/material";
+
+const EditAccount = (user) => {
+    const [phoneChecked, setPhoneChecked] = useState(false);  
+    const [nameChecked, setNameChecked] = useState(false);
+    const [phoneFieldValue, setPhoneFieldValue] = useState({});  
+    const [nameFieldValue, setNameFieldValue] = useState({});
+
+    const [info, setInfo] = useState({
+        fullName: user.currAccount.fullName,
+        phoneNumber: user.currAccount.phoneNumber,
+    });
+    //useEffect(() => {setInfo({...info, fullName: user.currAccount.fullName, phoneNumber: user.currAccount.phoneNumber})})
+
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+
+    const validate = () => {
+      const errors = {};
+
+      if(!(phoneChecked || nameChecked)) {
+        errors.fullName = "must select at least a field to edit";
+        errors.name_err = true;
+        errors.phoneNumber = "must select at least a field to edit";
+        errors.phone_err = true;
+        return errors;
+      }
+      
+      if(nameChecked) {
+
+        info.fullName=nameFieldValue;
+
+        if(Object.keys(info.fullName).length === 0 ) { //check for empty object
+          errors.fullName = "a checked field can't be empty";
+          errors.name_err = true;
+        }
+        else if (info.fullName.length < 2 || info.fullName.length > 20) {
+          errors.name_err = true;
+          errors.fullName = "2 and 20 char";
+        }
+      }
+  
+      if(phoneChecked) {
+
+        info.phoneNumber = phoneFieldValue;
+
+        if(Object.keys(info.phoneNumber).length === 0 ) { //check for empty object
+          errors.phoneNumber = "a checked field can't be empty";
+          errors.phone_err = true;
+        }
+        else if (!/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im.test(info.phoneNumber)) { 
+          errors.phoneNumber = "Invalid phone number";
+          errors.phone_err = true;
+        }
+      }
+
+      return errors;
+    };
+  
+    const submitHandler = async (event) => {
+        event.preventDefault();
+
+        let errors = validate(info);
+        setErrors(errors);
+
+        if (Object.keys(errors).length === 0) {
+
+            if(info.fullName === undefined) {
+              info.fullName = user.currAccount.fullName
+            }
+            else if (info.phoneNumber === undefined) {
+              info.phoneNumber = user.currAccount.phoneNumber
+            }
+
+            const response = await EditAccountService(info);
+            setLoading(true);
+            if (response.status === 201) {
+                setLoading(false);
+                window.location.reload(false);
+            }
+            else {
+              setLoading(false);
+              console.log(errors);
+            }
+        }
+        else {
+          setInfo({...info, fullName: user.currAccount.fullName, phoneNumber:user.currAccount.phoneNumber});
+        }
+    };
+  
+    return (
+      <Container variant="main" maxWidth = "l">
+        <Typography variant="h6">
+          Edit your account
+        </Typography>
+        <Box component="form" onSubmit={submitHandler} noValidate sx={{ mt: 1 }}>
+          <FormGroup>
+            <FormControlLabel control={<Checkbox onChange={(e) => setNameChecked(e.target.checked)}/>} label="Edit full name" />
+          </FormGroup>
+            
+            <TextField
+                margin="normal"
+                fullWidth
+                id="name-input"
+                label="Full Name"
+                name="name"
+                autoComplete="name"
+                autoFocus
+                onChange={(e) => setNameFieldValue(e.target.value)}
+                error = {errors.name_err}
+                helperText={errors.fullName} 
+              />
+            
+            <FormGroup>
+              <FormControlLabel control={<Checkbox  onChange={(e) => setPhoneChecked(e.target.checked)}/>} label="Edit phone number" />
+            </FormGroup>
+
+            <TextField
+                margin="normal"
+                fullWidth
+                name="phoneNumber"
+                label="Phone Number"
+                type="phoneNumber"
+                onChange={(e) => setPhoneFieldValue(e.target.value)}
+                id="phone-input"
+                autoComplete="phoneNumber"
+                error = {errors.phone_err}
+                helperText={errors.phoneNumber}
+              />
+
+          <LoadingButton
+                color="primary"
+                loading={ loading }
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+              >
+                Edit Account
+            </LoadingButton>
+        </Box>             
+      </Container>
+    );
+  };
+
+export default EditAccount;
